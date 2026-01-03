@@ -21,22 +21,19 @@
         .hibi-container { padding: 10px 5px; display: flex; gap: 6px; align-items: flex-start; }
         .hibi-col { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
         
-        /* HIBI 卡片樣式 - 優化間距 */
+        /* HIBI 卡片樣式 */
         .hibi-card { background: white; border-radius: 8px; padding: 10px 5px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
         .hibi-card.selected { border: 2px solid #ffc107; background-color: #fff9db; }
         .hibi-card.oos { opacity: 0.7; background-color: #f8f9fa; border-color: #e9ecef; }
-        
         .hibi-name { font-size: 0.9rem; font-weight: 700; color: #333; margin-bottom: 8px; line-height: 1.3; min-height: 40px; display: flex; align-items: center; justify-content: center; }
         
-        /* HIBI 微型控制器 - V8.6 大按鈕優化 */
-        .hibi-qty-ctrl { display: flex; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; height: 45px; /* 加高 */ }
+        /* HIBI 微型控制器 - 大按鈕 */
+        .hibi-qty-ctrl { display: flex; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; height: 45px; }
         .hibi-qty-ctrl.disabled { border-color: #eee; background: #eee; }
-        
-        .hibi-btn { width: 40px; /* 加寬 */ background: #f0f0f0; border: none; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; /* 字體加大 */ padding: 0; color: #555; transition: background 0.1s; }
+        .hibi-btn { width: 40px; background: #f0f0f0; border: none; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; padding: 0; color: #555; transition: background 0.1s; }
         .hibi-btn:active { background: #ffc107; color: black; }
         .hibi-btn.disabled { color: #ccc; cursor: not-allowed; background: #eee; }
-        
-        .hibi-input { width: 100%; border: none; text-align: center; font-weight: 800; font-size: 1.2rem; /* 數字加大 */ color: #d32f2f; padding: 0; background: white; }
+        .hibi-input { width: 100%; border: none; text-align: center; font-weight: 800; font-size: 1.2rem; color: #d32f2f; padding: 0; background: white; }
         .hibi-input:disabled { background: #eee; color: #999; font-size: 0.9rem; }
 
         /* 通用樣式 */
@@ -130,11 +127,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // V8.6 HIBI Big Button Version
+    // V9.0 HIBI Sorted Output + Fixed OOS + Big Buttons
     const customerName = "HIBI (觀)"; const customerCode = "W2823B";
     const salesPhone = "85298233606";
     const storageKey = "hibi_kt_v8";
 
+    // OOS List Added Back
     const outOfStockCodes = ["C58AC","D58C","D10F","D10D","D09M","D09G"];
 
     const hibiCols = {
@@ -387,7 +385,15 @@
         const dateStr = getDeliveryDate();
         let msg = `${customerCode} ${customerName}\n日期：${dateStr}\n訂貨單：\n\n`;
         
-        for (let c in cart) {
+        // V9.0 Sort Logic:
+        // Get all selected codes
+        let codes = Object.keys(cart);
+        
+        // Sort them alphabetically/numerically
+        codes.sort();
+
+        // Generate message in sorted order
+        for (let c of codes) {
             let q = cart[c];
             let nameLine;
 
