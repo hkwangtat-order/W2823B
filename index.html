@@ -127,11 +127,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // V9.0 HIBI Sorted Output + Fixed OOS + Big Buttons
+    // V9.1 HIBI Fixed - 專用三列清單 + 修復發送按鈕
     const customerName = "HIBI (觀)"; const customerCode = "W2823B";
     const salesPhone = "85298233606";
-    const storageKey = "hibi_kt_v8";
-
+    
     // OOS List Added Back
     const outOfStockCodes = ["C58AC","D58C","D10F","D10D","D09M","D09G"];
 
@@ -374,62 +373,54 @@
         if (Object.keys(cart).length === 0) { c.innerHTML = '<div class="text-center p-4 text-muted">尚未選擇任何產品</div>'; return; }
         let h = '';
         for (let k in cart) {
+            // 在查看已選清單時，也優先顯示自定義的 HIBI 簡稱
             let displayName = customNameMap[k] ? `${customNameMap[k]}` : (productMap[k] ? productMap[k].name : k);
             h += `<div class="product-row selected"><div class="p-info"><div class="p-name">${displayName}</div><div class="p-code">${k}</div></div><div class="qty-control"><div class="qty-btn" onclick="updateQty('${k}',-1)">-</div><input type="text" class="qty-input" value="${cart[k]}" readonly><div class="qty-btn" onclick="updateQty('${k}',1)">+</div></div></div>`;
         }
         c.innerHTML = h;
     }
 
-   // ✅ 老客戶專用修正版 (修復按鈕失效 + 顯示單位)
+    // ✅ 修復後的發送函數 (移除了不存在的 learned/frequent 代碼)
     function sendWhatsApp(mode){
         if(Object.keys(cart).length===0){alert("請先選擇產品！");return}
         
         const dateStr = getDeliveryDate();
         let msg=`${customerCode} ${customerName}\n日期：${dateStr}\n訂貨單：\n\n`;
         
-        // 這裡保留了您想要的「隻/K」顯示邏輯
+        // 格式化函數：優先使用 customNameMap 中的 HIBI 專用簡稱
         const fmt=c=>{
-            const p=productMap[c];
-            const n=p?p.name:c;
+            // 如果在上方三列清單有這個產品，就用那個簡短名字 (customNameMap)，否則用原庫存名
+            let name = customNameMap[c] ? customNameMap[c] : (productMap[c] ? productMap[c].name : c);
+            
             let q=cart[c].toString();
             
-            if(cartUnits[c]==='kg') {
-                q += 'K';
-            } else if (cartUnits[c]==='piece') {
-                q += '隻';
-            }
+            // 單位處理 (雖然此介面無法選單位，但保留邏輯以免報錯)
+            if(cartUnits && cartUnits[c]==='kg') { q += 'K'; } 
+            else if (cartUnits && cartUnits[c]==='piece') { q += '隻'; }
             
-            return ` ${q.padEnd(6,' ')} ${n} (${c})\n`
+            return ` ${q.padEnd(6,' ')} ${name} (${c})\n`
         };
         
         // A-Z 排序
         let codes = Object.keys(cart).sort(); 
         
-        let hasNewItems = false;
         for(let c of codes){
-            // 這裡是老客戶的邏輯：檢查是否在常用清單，如果不在，就加入 "learned"
-            if(!frequentCodes.includes(c) && !learnedFrequent.includes(c)){
-                learnedFrequent.push(c);
-                hasNewItems = true;
-            }
             msg+=fmt(c); 
         }
         
-        if(hasNewItems){
-            localStorage.setItem(storageKey + '_learned', JSON.stringify(learnedFrequent));
-            renderFrequent(); 
-        }
-
         if (mode === 'direct') {
             window.open(`https://api.whatsapp.com/send?phone=${salesPhone}&text=${encodeURIComponent(msg)}`,'_blank');
         } else {
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`,'_blank');
         }
         
+        // 延遲後清空購物車
         setTimeout(() => {
             cart = {}; cartUnits = {};
             saveCart();
-            renderAll(); renderFrequent(); calcTotal();
+            renderHibiCustom(); // 重繪三列清單 (歸零)
+            renderAll(); // 重繪全部產品 (歸零)
+            calcTotal();
             if(document.getElementById('cartModal').classList.contains('show')) cartModal.hide();
         }, 1000);
     }
