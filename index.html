@@ -380,46 +380,57 @@
         c.innerHTML = h;
     }
 
-    function sendWhatsApp(mode) {
-        if (Object.keys(cart).length === 0) { alert("請先選擇產品！"); return; }
+   // ✅ 老客戶專用修正版 (修復按鈕失效 + 顯示單位)
+    function sendWhatsApp(mode){
+        if(Object.keys(cart).length===0){alert("請先選擇產品！");return}
+        
         const dateStr = getDeliveryDate();
-        let msg = `${customerCode} ${customerName}\n日期：${dateStr}\n訂貨單：\n\n`;
+        let msg=`${customerCode} ${customerName}\n日期：${dateStr}\n訂貨單：\n\n`;
         
-        // V9.0 Sort Logic:
-        // Get all selected codes
-        let codes = Object.keys(cart);
+        // 這裡保留了您想要的「隻/K」顯示邏輯
+        const fmt=c=>{
+            const p=productMap[c];
+            const n=p?p.name:c;
+            let q=cart[c].toString();
+            
+            if(cartUnits[c]==='kg') {
+                q += 'K';
+            } else if (cartUnits[c]==='piece') {
+                q += '隻';
+            }
+            
+            return ` ${q.padEnd(6,' ')} ${n} (${c})\n`
+        };
         
-        // Sort them alphabetically/numerically
-        codes.sort();
-
-        // Generate message in sorted order
-        for (let c of codes) {
-            let q = cart[c];
-            let nameLine;
-
-            if (c === 'UNI_X') {
-                nameLine = customNameMap[c]; 
+        // A-Z 排序
+        let codes = Object.keys(cart).sort(); 
+        
+        let hasNewItems = false;
+        for(let c of codes){
+            // 這裡是老客戶的邏輯：檢查是否在常用清單，如果不在，就加入 "learned"
+            if(!frequentCodes.includes(c) && !learnedFrequent.includes(c)){
+                learnedFrequent.push(c);
+                hasNewItems = true;
             }
-            else if (customNameMap[c]) {
-                nameLine = `${customNameMap[c]}   (${c})`;
-            } else {
-                const p = productMap[c];
-                const n = p ? p.name : c;
-                nameLine = `${n}   (${c})`;
-            }
-            msg += ` ${q.toString().padEnd(3, ' ')} ${nameLine}\n`;
+            msg+=fmt(c); 
+        }
+        
+        if(hasNewItems){
+            localStorage.setItem(storageKey + '_learned', JSON.stringify(learnedFrequent));
+            renderFrequent(); 
         }
 
         if (mode === 'direct') {
-            window.open(`https://api.whatsapp.com/send?phone=${salesPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+            window.open(`https://api.whatsapp.com/send?phone=${salesPhone}&text=${encodeURIComponent(msg)}`,'_blank');
         } else {
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`,'_blank');
         }
-
+        
         setTimeout(() => {
-            cart = {}; saveCart();
-            renderHibiCustom(); renderAll(); calcTotal();
-            if (document.getElementById('cartModal').classList.contains('show')) cartModal.hide();
+            cart = {}; cartUnits = {};
+            saveCart();
+            renderAll(); renderFrequent(); calcTotal();
+            if(document.getElementById('cartModal').classList.contains('show')) cartModal.hide();
         }, 1000);
     }
     init();
